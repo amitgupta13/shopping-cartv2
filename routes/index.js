@@ -1,12 +1,8 @@
 var express = require('express');
 var router = express.Router();
-const csrf = require('csurf');
-const passport = require('passport');
 const {Product} = require('../models/product');
+const Cart = require('../models/cart');
 
-const csrfProtection = csrf();
-
-router.use(csrfProtection);
 
 /* GET home page. */
 router.get('/', async function(req, res, next) {
@@ -19,19 +15,20 @@ router.get('/', async function(req, res, next) {
   res.render('shop/index', { products:productChunks });
 });
 
-router.get('/user/signup', function(req, res, next){
-  const messages = req.flash('error');
-  res.render('user/signup', {csrfToken:req.csrfToken(), messages, hasErrors:messages.length > 0});
-})
+router.get('/add-to-cart/:id', function(req, res, next){
+  const productId = req.params.id;
+  let cart = new Cart(req.session.cart? req.session.cart : {});
 
-router.post('/user/signup', passport.authenticate('local.signup',{
-  successRedirect:'/user/profile',
-  failureRedirect:'/user/signup',
-  failureFlash:true
-}));
-
-router.get('/user/profile', function(req, res, next){
-  res.render('user/profile');
-})
+  Product.findById(productId, function(err, product){
+    if(err){
+      return res.redirect('/');
+    }
+    console.log('product---->', product._id);
+    cart.add(product, product._id);
+    req.session.cart = cart;
+    console.log('cart---->',req.session.cart);
+    res.redirect('/');
+  })
+});
 
 module.exports = router;
